@@ -1,0 +1,722 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TimeToTake</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#0f766e;
+    --teal-100:#e6fffb;
+    --bg:#f5f7f8;
+    --card:#ffffff;
+    --muted:#6b7280;
+    --border:#e6eef0;
+    --text:#0f1724;
+    --danger:#ef4444;
+    --radius:10px;
+    --max-width:920px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    justify-content:center;
+    padding:24px;
+  }
+
+  /* container that feels rectangular and fills more width */
+  .app {
+    width:100%;
+    max-width:var(--max-width);
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  header{
+    background:var(--teal);
+    color:white;
+    padding:18px 20px;
+    border-radius:12px;
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+
+  header .title {
+    font-weight:700;
+    font-size:20px;
+    letter-spacing:-0.2px;
+  }
+  header .subtitle {
+    color:rgba(255,255,255,0.92);
+    font-size:13px;
+    opacity:0.95;
+  }
+
+  /* main panel look */
+  .panel {
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:14px;
+    box-shadow:0 4px 20px rgba(15,23,36,0.04);
+  }
+
+  /* Add bar: single horizontal form */
+  .add-bar{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    width:100%;
+  }
+  .add-bar input[type="text"], .add-bar input[type="time"]{
+    padding:10px 12px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    font-size:14px;
+    background:transparent;
+  }
+  /* let the name field be flexible */
+  .add-bar .flex {
+    flex:1;
+    min-width:0;
+  }
+
+  .btn {
+    background:var(--teal);
+    color:white;
+    border:none;
+    padding:10px 12px;
+    border-radius:8px;
+    font-weight:600;
+    cursor:pointer;
+    font-size:14px;
+  }
+  .btn:active{transform:scale(.997)}
+
+  .small {
+    padding:8px 10px;
+    font-size:13px;
+    border-radius:8px;
+  }
+
+  .muted { color:var(--muted); font-size:13px; margin-top:6px; }
+
+  /* Table */
+  table {
+    width:100%;
+    border-collapse:collapse;
+    font-size:14px;
+  }
+  thead th{
+    text-align:left;
+    font-weight:600;
+    font-size:13px;
+    color:var(--teal);
+    padding:10px 12px;
+    border-bottom:2px solid var(--border);
+  }
+  tbody td {
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    vertical-align:middle;
+  }
+
+  tbody tr:last-child td { border-bottom:none; }
+
+  .actions {
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .ghost {
+    background:transparent;
+    border:1px solid var(--border);
+    padding:8px 10px;
+    border-radius:8px;
+    cursor:pointer;
+  }
+
+  .danger {
+    background:transparent;
+    border:1px solid #f8d7da;
+    color:var(--danger);
+  }
+
+  /* overlay + modal */
+  .overlay {
+    position:fixed;
+    inset:0;
+    background:rgba(7,12,15,0.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:1200;
+  }
+  .modal {
+    width:92%;
+    max-width:420px;
+    background:white;
+    border-radius:14px;
+    padding:18px;
+    text-align:center;
+    box-shadow:0 18px 40px rgba(2,6,23,0.35);
+  }
+  .modal h2 {
+    margin:0;
+    color:var(--teal);
+    font-size:18px;
+    margin-bottom:8px;
+  }
+  .modal p { margin:0; color:var(--muted); font-size:14px; }
+  .modal .ok {
+    margin-top:14px;
+    background:var(--teal);
+    color:white;
+    border:none;
+    border-radius:10px;
+    padding:10px 16px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
+  /* responsive tweaks */
+  @media (max-width:680px){
+    .add-bar { flex-direction:column; align-items:stretch; }
+    .add-bar .right { display:flex; gap:8px; }
+    thead th:nth-child(1), tbody td:nth-child(1) { width:38%; }
+  }
+
+  /* small helper */
+  .note { font-size:16px; color:var(--muted); margin-top:8px; }
+  .center { text-align:center; }
+</style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="TimeToTake medicine tracker">
+
+    <header>
+      <div style="display:flex;flex-direction:column;">
+        <div class="title">TimeToTake</div>
+        <div class="subtitle"><strong>Official Website of Group 4 of 12 - Del Mundo</strong></div>
+      </div>
+      <div style="margin-left:auto;color:rgba(255,255,255,0.9);font-size:15px">...</div>
+    </header>
+
+    <!-- Add / Edit bar -->
+    <div class="panel" aria-labelledby="add-title">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <div style="flex:1">
+              <label id="add-title" style="display:block;font-weight:600;color:var(--teal);font-size:15px;">Add Medicine</label>
+              <div class="add-bar" style="margin-top:8px;">
+                <input class="flex" id="inputName" type="text" placeholder="Medicine name" autocomplete="off" spellcheck="false" />
+                <input id="inputDosage" type="text" placeholder="Dosage (e.g. 1 tablet)" autocomplete="off" spellcheck="false" style="width:180px"/>
+                <input id="inputTime" type="time" autocomplete="off" />
+                <button id="btnAdd" class="btn small">Save</button>
+              </div>
+              <div class="muted">Type medicine name, dosage, and choose time. Click <strong>Save</strong> to add.</div>
+            </div>
+          </div>
+        </div>
+        <div style="width:190px;text-align:right">
+          <div style="font-size:13px;font-weight:600;color:var(--muted);">Quick actions</div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
+            <button id="btnClearPending" class="ghost small" title="Clear all pending">Clear Pending Schedule</button>
+            <button id="btnClearHistory" class="ghost small danger" title="Clear history">Clear Medicine History</button>
+          </div>
+          <div class="note center">...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Medicines table -->
+    <div class="panel" aria-labelledby="meds-title">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div id="meds-title" style="font-weight:600;color:var(--teal);font-size:15px;">Your Scheduled Medicines</div>
+          <div class="muted">click Edit to change, then Save Changes (per row).</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;overflow:auto;">
+        <table id="medsTable" aria-describedby="meds-title">
+          <thead>
+            <tr>
+              <th>Medicine</th>
+              <th>Dosage</th>
+              <th>Time</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="medsBody">
+            <!-- rows generated by JS -->
+          </tbody>
+        </table>
+        <div id="emptyHint" class="muted" style="padding:12px 0;">No medicines yet — add one above.</div>
+      </div>
+    </div>
+
+    <!-- History table -->
+    <div class="panel" aria-labelledby="history-title">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div id="history-title" style="font-weight:600;color:var(--teal);font-size:15px;">History</div>
+          <div class="muted">Past medicines that were marked taken after notification.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;overflow:auto;">
+        <table id="histTable">
+          <thead>
+            <tr>
+              <th>Medicine</th>
+              <th>Dosage</th>
+              <th>Time taken</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="histBody"></tbody>
+        </table>
+        <div id="emptyHist" class="muted" style="padding:12px 0;">No history yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- overlay + modal -->
+  <div id="overlay" class="overlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal" role="document">
+      <h2>💊 Time to take your medicine</h2>
+      <p id="modalText">Please take your scheduled medicine now.</p>
+      <button id="modalOk" class="ok" aria-label="Acknowledge">OK</button>
+    </div>
+  </div>
+
+<script>
+/*
+  TimeToTake — single-file app
+  Features:
+  - Add medicine (name, dosage, time)
+  - Table with inline editable fields (Edit -> Save Changes / Cancel)
+  - Notification modal with overlay + looping soft bell (Web Audio)
+  - Sound plays repeatedly until user clicks OK
+  - Data persisted to localStorage
+  - Clock checks every second for accuracy
+  - No external assets; inputs use autocomplete="off" & spellcheck="false"
+*/
+
+// --- Utilities
+const $ = selector => document.querySelector(selector);
+const $$ = selector => Array.from(document.querySelectorAll(selector));
+const nowTimeString = () => {
+  const d = new Date();
+  return d.toTimeString().slice(0,5); // "HH:MM"
+};
+
+// --- Audio: soft bell built with WebAudio, loop until stopped
+class Bell {
+  constructor() {
+    this.ctx = null;
+    this.isPlaying = false;
+    this._interval = null;
+  }
+  _ensure() {
+    if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  // generate one 'bell' sound (approx 3s) using decaying oscillators
+  _playOnce() {
+    this._ensure();
+    const ctx = this.ctx;
+    const now = ctx.currentTime;
+    // 3 oscillators with different frequencies and decay
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const osc3 = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    // soft bell-ish frequencies
+    osc1.frequency.value = 880; // A5
+    osc2.frequency.value = 1320; // E6
+    osc3.frequency.value = 1760; // A6
+
+    // gentle waveform choices
+    osc1.type = 'sine';
+    osc2.type = 'sine';
+    osc3.type = 'sine';
+
+    // ADSR-like envelope via gain
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.9, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.18, now + 2.0);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 3.2);
+
+    // connect
+    osc1.connect(gain);
+    osc2.connect(gain);
+    osc3.connect(gain);
+    gain.connect(ctx.destination);
+
+    // slight detune for richness
+    osc2.detune.value = 6;
+    osc3.detune.value = -8;
+
+    // start/stop
+    osc1.start(now);
+    osc2.start(now);
+    osc3.start(now);
+    osc1.stop(now + 3.2);
+    osc2.stop(now + 3.2);
+    osc3.stop(now + 3.2);
+  }
+
+  // start looping bell every ~3.6s (space between repeats)
+  start() {
+    if (this.isPlaying) return;
+    this.isPlaying = true;
+    // resume context if suspended (required by some browsers after user gesture)
+    this._ensure();
+    if (this.ctx.state === 'suspended' && typeof this.ctx.resume === 'function') {
+      this.ctx.resume().catch(()=>{/* ignore */});
+    }
+    // play immediately then schedule periodic plays
+    this._playOnce();
+    this._interval = setInterval(()=> this._playOnce(), 3600);
+  }
+
+  stop() {
+    if (!this.isPlaying) return;
+    clearInterval(this._interval);
+    this._interval = null;
+    this.isPlaying = false;
+  }
+}
+
+// --- App state + persistence
+const STORAGE_KEY = 'timetotake_v1_meds';
+let meds = []; // objects: {id, name, dosage, time, taken:boolean, takenAt:timestamp}
+const bell = new Bell();
+
+// load from storage
+function load() {
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    meds = raw ? JSON.parse(raw) : [];
+  }catch(e){
+    meds = [];
+  }
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(meds));
+}
+
+// --- DOM refs
+const inputName = $('#inputName');
+const inputDosage = $('#inputDosage');
+const inputTime = $('#inputTime');
+const btnAdd = $('#btnAdd');
+const medsBody = $('#medsBody');
+const histBody = $('#histBody');
+const emptyHint = $('#emptyHint');
+const emptyHist = $('#emptyHist');
+const overlay = $('#overlay');
+const modalOk = $('#modalOk');
+const modalText = $('#modalText');
+const btnClearPending = $('#btnClearPending');
+const btnClearHistory = $('#btnClearHistory');
+
+// helpers
+const uid = () => Math.random().toString(36).slice(2,9);
+
+// render tables
+function render() {
+  // pending meds (not taken)
+  const pending = meds.filter(m=>!m.taken);
+  medsBody.innerHTML = '';
+  if (pending.length === 0) {
+    emptyHint.style.display = 'block';
+  } else {
+    emptyHint.style.display = 'none';
+  }
+
+  pending.forEach((m, idx) => {
+    const tr = document.createElement('tr');
+
+    // name cell
+    const nameTd = document.createElement('td');
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = m.name;
+    nameInput.disabled = true;
+    nameInput.style.width = '100%';
+    nameInput.setAttribute('autocomplete','off');
+    nameInput.setAttribute('spellcheck','false');
+    nameTd.appendChild(nameInput);
+
+    // dosage
+    const doseTd = document.createElement('td');
+    const doseInput = document.createElement('input');
+    doseInput.type = 'text';
+    doseInput.value = m.dosage;
+    doseInput.disabled = true;
+    doseInput.style.width = '100%';
+    doseInput.setAttribute('autocomplete','off');
+    doseInput.setAttribute('spellcheck','false');
+    doseTd.appendChild(doseInput);
+
+    // time
+    const timeTd = document.createElement('td');
+    const timeInput = document.createElement('input');
+    timeInput.type = 'time';
+    timeInput.value = m.time;
+    timeInput.disabled = true;
+    timeInput.style.width = '120px';
+    timeInput.setAttribute('autocomplete','off');
+    timeTd.appendChild(timeInput);
+
+    // actions
+    const actTd = document.createElement('td');
+    actTd.style.textAlign = 'right';
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'ghost small';
+    editBtn.textContent = 'Edit';
+
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'btn small';
+    saveBtn.textContent = 'Save Changes';
+    saveBtn.style.display = 'none';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'ghost small';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.style.display = 'none';
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'ghost small';
+    delBtn.textContent = 'Del';
+
+    // mark button to manually mark taken (if desired)
+    const markBtn = document.createElement('button');
+    markBtn.className = 'ghost small';
+    markBtn.textContent = 'Mark';
+
+    // wire actions
+    editBtn.addEventListener('click', ()=> {
+      nameInput.disabled = false;
+      doseInput.disabled = false;
+      timeInput.disabled = false;
+      nameInput.focus();
+      editBtn.style.display = 'none';
+      saveBtn.style.display = '';
+      cancelBtn.style.display = '';
+    });
+
+    cancelBtn.addEventListener('click', ()=> {
+      nameInput.value = m.name;
+      doseInput.value = m.dosage;
+      timeInput.value = m.time;
+      nameInput.disabled = true;
+      doseInput.disabled = true;
+      timeInput.disabled = true;
+      editBtn.style.display = '';
+      saveBtn.style.display = 'none';
+      cancelBtn.style.display = 'none';
+    });
+
+    saveBtn.addEventListener('click', ()=> {
+      // basic validation
+      const newName = nameInput.value.trim();
+      const newDosage = doseInput.value.trim();
+      const newTime = timeInput.value;
+      if (!newName || !newDosage || !newTime) {
+        alert('Please fill all fields before saving.');
+        return;
+      }
+      m.name = newName;
+      m.dosage = newDosage;
+      m.time = newTime;
+      nameInput.disabled = true;
+      doseInput.disabled = true;
+      timeInput.disabled = true;
+      editBtn.style.display = '';
+      saveBtn.style.display = 'none';
+      cancelBtn.style.display = 'none';
+      save();
+      render();
+    });
+
+    delBtn.addEventListener('click', ()=> {
+      if (!confirm('Delete this medicine?')) return;
+      meds = meds.filter(x => x.id !== m.id);
+      save();
+      render();
+    });
+
+    markBtn.addEventListener('click', ()=> {
+      // mark as taken now
+      m.taken = true;
+      m.takenAt = new Date().toISOString();
+      save();
+      render();
+    });
+
+    actions.appendChild(editBtn);
+    actions.appendChild(saveBtn);
+    actions.appendChild(cancelBtn);
+    actions.appendChild(markBtn);
+    actions.appendChild(delBtn);
+    actTd.appendChild(actions);
+
+    tr.appendChild(nameTd);
+    tr.appendChild(doseTd);
+    tr.appendChild(timeTd);
+    tr.appendChild(actTd);
+
+    medsBody.appendChild(tr);
+  });
+
+  // history
+  const history = meds.filter(m=>m.taken).sort((a,b)=> (b.takenAt||'') - (a.takenAt||''));
+  histBody.innerHTML = '';
+  if (history.length === 0) emptyHist.style.display = 'block'; else emptyHist.style.display = 'none';
+  history.forEach(m=>{
+    const tr = document.createElement('tr');
+
+    const c1 = document.createElement('td'); c1.textContent = m.name;
+    const c2 = document.createElement('td'); c2.textContent = m.dosage;
+    const c3 = document.createElement('td'); c3.textContent = (new Date(m.takenAt||'')).toLocaleString();
+    const c4 = document.createElement('td'); c4.style.textAlign='right';
+    const act = document.createElement('div'); act.className='actions';
+    const del = document.createElement('button'); del.className='ghost small'; del.textContent='Delete';
+    del.addEventListener('click', ()=>{
+      if (!confirm('Delete from history?')) return;
+      meds = meds.filter(x=>x.id !== m.id);
+      save();
+      render();
+    });
+    act.appendChild(del);
+    c4.appendChild(act);
+
+    tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4);
+    histBody.appendChild(tr);
+  });
+}
+
+// Add new medicine (from add bar)
+btnAdd.addEventListener('click', (e)=>{
+  e.preventDefault();
+  const name = inputName.value.trim();
+  const dosage = inputDosage.value.trim();
+  const time = inputTime.value;
+  if (!name || !dosage || !time) {
+    alert('Please enter name, dosage and time.');
+    return;
+  }
+  meds.push({
+    id: uid(),
+    name,
+    dosage,
+    time,
+    taken:false,
+    takenAt:null,
+  });
+  save();
+  inputName.value='';
+  inputDosage.value='';
+  inputTime.value='';
+  render();
+});
+
+// Clear pending / history
+btnClearPending.addEventListener('click', ()=>{
+  if (!confirm('Clear all pending medicines? This will delete unsent entries.')) return;
+  meds = meds.filter(m=>m.taken);
+  save();
+  render();
+});
+btnClearHistory.addEventListener('click', ()=>{
+  if (!confirm('Clear entire history?')) return;
+  meds = meds.filter(m=>!m.taken);
+  save();
+  render();
+});
+
+// --- Notification logic
+let activeAlert = null; // id of med triggering modal
+
+function showModalFor(med) {
+  activeAlert = med.id;
+  modalText.textContent = `${med.name} — ${med.dosage} at ${med.time}`;
+  overlay.style.display = 'flex';
+  overlay.setAttribute('aria-hidden','false');
+  // start bell looping
+  bell.start();
+}
+
+function hideModalAndMarkTaken() {
+  if (!activeAlert) {
+    overlay.style.display = 'none';
+    overlay.setAttribute('aria-hidden','true');
+    bell.stop();
+    return;
+  }
+  // find med and mark taken now
+  const med = meds.find(m=>m.id === activeAlert);
+  if (med) {
+    med.taken = true;
+    med.takenAt = new Date().toISOString();
+    save();
+    render();
+  }
+  activeAlert = null;
+  overlay.style.display = 'none';
+  overlay.setAttribute('aria-hidden','true');
+  bell.stop();
+}
+
+modalOk.addEventListener('click', hideModalAndMarkTaken);
+
+// Check every second: fire when time matches and not yet taken and not already alerting
+setInterval(()=>{
+  const current = nowTimeString();
+  meds.forEach(m=>{
+    // if same time, not taken, and not currently alerting
+    if (m.time === current && !m.taken && activeAlert !== m.id) {
+      // bring up modal and start sound loop
+      showModalFor(m);
+    }
+  });
+}, 1000);
+
+// init
+load();
+render();
+
+// Accessibility: allow ESC to dismiss (doesn't mark taken)
+document.addEventListener('keydown', e=>{
+  if (e.key === 'Escape' && overlay.style.display === 'flex') {
+    // stop sound and hide overlay without marking taken
+    activeAlert = null;
+    overlay.style.display = 'none';
+    overlay.setAttribute('aria-hidden','true');
+    bell.stop();
+  }
+});
+
+// Prevent accidental form autofill tricks by setting autocomplete on inputs already done
+// Extra: if browser still shows suggestions, forms typically require user gesture to start audio
+// We call bell.start() only after user interacts (clicking OK or page interactions)
+// To be safe, resume audio on first user click if suspended (handled in Bell.start)
+</script>
+</body>
+</html>
